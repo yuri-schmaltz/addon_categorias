@@ -17,19 +17,29 @@ def main() -> int:
     repo_root = os.path.dirname(os.path.abspath(__file__))
     sys.path.insert(0, repo_root)
 
-    # Optional pytest install (only needed if you want pytest.approx support).
-    for ext_lib in [
-        os.path.expanduser("~/.local/lib/python3.11/site-packages"),
-        "/tmp/.venv-test/lib/python3.14/site-packages",
-    ]:
-        if os.path.isdir(ext_lib):
-            sys.path.insert(0, ext_lib)
-
-    mod = addon_utils.enable("addon_categorias", default_set=True)
+    # Handle both legacy (addon_categorias) and extension-installed
+    # (bl_ext.user_default.addon_categories) module names.
+    mod = None
+    addon_module_name = None
+    for candidate in ("addon_categorias", "bl_ext.user_default.addon_categories"):
+        try:
+            mod = addon_utils.enable(candidate, default_set=True)
+            if mod is not None:
+                addon_module_name = candidate
+                break
+        except Exception:
+            continue
     if mod is None:
         print("ERROR: Failed to enable addon_categorias")
         return 2
-    if "addon_categorias" not in bpy.context.preferences.addons:
+
+    prefs_key = None
+    for k in bpy.context.preferences.addons.keys():
+        entry = bpy.context.preferences.addons[k]
+        if entry.preferences is not None and k.endswith("addon_categories"):
+            prefs_key = k
+            break
+    if prefs_key is None:
         print("ERROR: addon_categorias not in preferences")
         return 2
 
@@ -39,7 +49,7 @@ def main() -> int:
         print(f"ERROR: cannot import test_pytest: {e}")
         return 2
 
-    prefs = bpy.context.preferences.addons["addon_categorias"].preferences
+    prefs = bpy.context.preferences.addons[prefs_key].preferences
 
     test_classes = [
         getattr(test_pytest, name) for name in [
@@ -118,7 +128,16 @@ def main() -> int:
     return 0 if failed == 0 else 1
 
 
+def _cleanup():
+    """Disable whichever addon variant was enabled."""
+    for candidate in ("addon_categorias", "bl_ext.user_default.addon_categories"):
+        try:
+            addon_utils.disable(candidate, default_set=True)
+        except Exception:
+            pass
+
+
 if __name__ == "__main__":
     rc = main()
-    addon_utils.disable("addon_categorias", default_set=True)
+    _cleanup()
     sys.exit(rc)

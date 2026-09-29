@@ -16,12 +16,32 @@ def run_tests():
     print("RUNNING EXTENSION & ADD-ON CATEGORIES TEST SUITE")
     print("=" * 60)
 
-    # 1. Enable addon
+    # 1. Enable addon — handle both legacy (addon_categorias) and
+    # extension-installed (bl_ext.user_default.addon_categories) module names.
     print("\n[TEST 1] Enabling addon_categorias...")
-    mod = addon_utils.enable("addon_categorias", default_set=True)
+    addon_module_name = None
+    for candidate in (
+        "addon_categorias",
+        "bl_ext.user_default.addon_categories",
+    ):
+        try:
+            mod = addon_utils.enable(candidate, default_set=True)
+            if mod is not None:
+                addon_module_name = candidate
+                break
+        except Exception:
+            continue
     assert mod is not None, "Failed to enable addon_categorias"
-    assert "addon_categorias" in bpy.context.preferences.addons, "addon_categorias not in preferences"
-    prefs = bpy.context.preferences.addons["addon_categorias"].preferences
+
+    # Find the actual preferences key (full module name).
+    prefs_key = None
+    for k in bpy.context.preferences.addons.keys():
+        if k == addon_module_name or k.endswith("addon_categories"):
+            if bpy.context.preferences.addons[k].preferences is not None:
+                prefs_key = k
+                break
+    assert prefs_key is not None, "addon_categorias not in preferences"
+    prefs = bpy.context.preferences.addons[prefs_key].preferences
     print(f"  -> Successfully enabled: {mod.__name__}, prefs: {prefs}")
 
     # 2. Test Default Categories initialization
@@ -65,7 +85,15 @@ def run_tests():
 
     # 4. Test Scanner
     print("\n[TEST 4] Testing Scanner...")
-    from addon_categorias import scanner
+    import importlib
+    scanner = None
+    for candidate in ("addon_categorias.scanner", "bl_ext.user_default.addon_categories.scanner"):
+        try:
+            scanner = importlib.import_module(candidate)
+            break
+        except ImportError:
+            continue
+    assert scanner is not None, "Cannot import scanner module"
     all_addons = scanner.scan_all_addons(bpy.context)
     print(f"  -> Total scanned: {len(all_addons)}")
     installed = [a for a in all_addons if a.is_installed]
@@ -182,7 +210,7 @@ def run_tests():
 
     # 8. Test Disable / Unregister
     print("\n[TEST 8] Disabling addon...")
-    addon_utils.disable("addon_categorias", default_set=True)
+    addon_utils.disable(addon_module_name, default_set=True)
     print("  -> Disabled successfully.")
 
     print("\n" + "=" * 60)

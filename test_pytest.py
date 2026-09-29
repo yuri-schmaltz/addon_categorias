@@ -16,8 +16,73 @@ Run directly inside Blender with the helper script run_pytest_inline.py
 """
 
 import bpy
-import pytest
+try:
+    import pytest
+except ImportError:
+    # Fall back to a minimal stub so the module is importable in Blender's
+    # bundled Python (which does not ship pytest). The @pytest.fixture and
+    # @pytest.approx decorators become no-ops; the inline runner in
+    # run_pytest_inline.py invokes test methods directly without pytest.
+    class _PytestStub:
+        @staticmethod
+        def fixture(*args, **kwargs):
+            if args and callable(args[0]) and not isinstance(args[0], type):
+                return args[0]
+            def deco(fn):
+                return fn
+            return deco
+    pytest = _PytestStub()
+
+    class _Approx:
+        """Lightweight stand-in for pytest.approx when pytest is missing."""
+        __slots__ = ("_value", "_abs")
+
+        def __init__(self, value, abs=None):
+            self._value = value
+            self._abs = abs
+
+        def __eq__(self, other):
+            if self._abs is not None:
+                return abs(other - self._value) <= self._abs
+            return other == self._value
+
+        def __ne__(self, other):
+            return not self.__eq__(other)
+
+        def __repr__(self):
+            return f"approx({self._value})"
+
+    def _approx(value, abs=None):
+        return _Approx(value, abs)
+    pytest.approx = _approx
+
 import addon_utils
+
+
+def _import_addon_module(name):
+    """Import a submodule (scanner, operators, presets, ...) from the addon.
+
+    The addon may be reachable under different names depending on how it was
+    loaded:
+    - Directly from the project dir: ``addon_categorias.scanner``
+    - As an installed extension: ``bl_ext.user_default.addon_categories.scanner``
+
+    This helper tries both paths so tests are agnostic to install location.
+    """
+    import importlib
+    candidates = [
+        f"addon_categorias.{name}",
+        f"bl_ext.user_default.addon_categories.{name}",
+    ]
+    last_error = None
+    for candidate in candidates:
+        try:
+            return importlib.import_module(candidate)
+        except ImportError as e:
+            last_error = e
+    raise ImportError(
+        f"Cannot import addon submodule '{name}'. Tried: {candidates}. Last error: {last_error}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -159,14 +224,14 @@ class TestReorder:
 
 class TestScanner:
     def test_scan_returns_items(self, prefs):
-        from addon_categorias import scanner
+        scanner = _import_addon_module("scanner")
         all_addons = scanner.scan_all_addons(bpy.context)
         assert len(all_addons) > 0
         installed = [a for a in all_addons if a.is_installed]
         assert len(installed) > 0
 
     def test_each_installed_has_category(self, prefs):
-        from addon_categorias import scanner
+        scanner = _import_addon_module("scanner")
         all_addons = scanner.scan_all_addons(bpy.context)
         for inst in all_addons:
             if inst.is_installed:
@@ -174,7 +239,7 @@ class TestScanner:
                     f"{inst.title} should have at least one category"
 
     def test_fallback_category_used(self, prefs):
-        from addon_categorias import scanner
+        scanner = _import_addon_module("scanner")
         all_addons = scanner.scan_all_addons(bpy.context)
         # At least one addon should fall into Pipeline & Utilities.
         fallbacks = [
@@ -186,19 +251,19 @@ class TestScanner:
 
 class TestFilters:
     def test_filter_by_category(self, prefs):
-        from addon_categorias import scanner
+        scanner = _import_addon_module("scanner")
         all_addons = scanner.scan_all_addons(bpy.context)
         modeling = scanner.filter_addons(all_addons, category="Modeling")
         assert all("Modeling" in item.assigned_categories for item in modeling)
 
     def test_filter_by_status(self, prefs):
-        from addon_categorias import scanner
+        scanner = _import_addon_module("scanner")
         all_addons = scanner.scan_all_addons(bpy.context)
         installed = scanner.filter_addons(all_addons, status_filter="INSTALLED")
         assert all(item.is_installed for item in installed)
 
     def test_filter_by_search(self, prefs):
-        from addon_categorias import scanner
+        scanner = _import_addon_module("scanner")
         all_addons = scanner.scan_all_addons(bpy.context)
         matches = scanner.filter_addons(all_addons, search_query="mesh")
         assert len(matches) > 0
@@ -302,9 +367,10 @@ class TestOperators:
         cat.name = "Color Test"
         cat.is_builtin = False
         cat.color = (0.25, 0.50, 0.75, 1.0)
-        assert cat.color[0] == pytest.approx(0.25, abs=1e-3)
-        assert cat.color[2] == pytest.approx(0.75, abs=1e-3)
-        assert cat.color[3] == pytest.approx(1.0, abs=1e-3)
+        # FloatVectorProperty rounds to fixed precision; use tolerance.
+        assert abs(cat.color[0] - 0.25) < 1e-3
+        assert abs(cat.color[2] - 0.75) < 1e-3
+        assert abs(cat.color[3] - 1.0) < 1e-3
 
 
 # ---------------------------------------------------------------------------
@@ -314,7 +380,6 @@ class TestOperators:
 class TestJsonExport:
     def test_export_data_shape(self, prefs):
         import json
-        from addon_categorias import presets
         prefs.ensure_default_categories()
         data = {
             "version": 1,

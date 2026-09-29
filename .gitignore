@@ -1,0 +1,34 @@
+# Python bytecode cache — regenerated automatically, never commit.
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions.
+*.so
+
+# Distribution / build artifacts (addon_categories.zip is rebuilt by `make`
+# or manually; .egginfo and friends are never produced by this project).
+*.egg-info/
+*.egg
+build/
+dist/
+
+# IDE / editor scratch files.
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# pytest / coverage caches.
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# uv venv (if someone runs `uv venv` in this directory).
+.venv/
+
+# Local test outputs that should never be tracked.
+*.log
+*.tmp
