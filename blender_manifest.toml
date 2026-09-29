@@ -9,6 +9,10 @@ tags = ["User Interface", "System", "Preferences"]
 blender_version_min = "4.2.0"
 license = ["SPDX:GPL-3.0-or-later"]
 
+[icon]
+path = "icon.png"
+preview = "icon.png"
+
 [permissions]
 files = "Export and import category backup files (JSON)"
 

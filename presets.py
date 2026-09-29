@@ -2,18 +2,20 @@
 Default categories and auto-tagging heuristics for Blender Add-ons and Extensions.
 """
 
-# Default categories: (ID, Display Name, Icon, Description)
+# Default categories: (ID, Display Name, Icon, Description, Color RGBA)
+# Colors are accent hues used by the sidebar indicator. Saturation is kept
+# moderate to remain readable against Blender's dark/light UI themes.
 DEFAULT_CATEGORIES = [
-    ("favorites", "Favorites", "SOLO_ON", "Favorite and frequently used add-ons"),
-    ("modeling", "Modeling", "MESH_CUBE", "Mesh editing, hard-surface, curves and modifiers"),
-    ("sculpting", "Sculpting", "SCULPTMODE_HLT", "Sculpting tools, brushes, and detailing"),
-    ("rigging", "Rigging & Armature", "ARMATURE_DATA", "Character rigging, bone setups, and skins"),
-    ("animation", "Animation", "ACTION", "Animation workflows, keyframing, and motion tools"),
-    ("render_lighting", "Render & Lighting", "SHADING_RENDERED", "Lighting setups, render engines, and camera tools"),
-    ("materials_shading", "Materials & Shading", "MATERIAL", "Shaders, texture mapping, and node tools"),
-    ("uv_texturing", "UV & Texturing", "UV", "UV unwrapping, layout, and packing"),
-    ("import_export", "Import & Export", "IMPORT", "File formats, I/O pipelines, and asset exchanges"),
-    ("pipeline_utils", "Pipeline & Utilities", "PREFERENCES", "Productivity helpers, UI enhancements, and system tools"),
+    ("favorites",        "Favorites",          "SOLO_ON",            "Favorite and frequently used add-ons",                                                            (1.00, 0.85, 0.20, 1.0)),
+    ("modeling",         "Modeling",           "MESH_CUBE",          "Mesh editing, hard-surface, curves and modifiers",                                                (0.40, 0.70, 1.00, 1.0)),
+    ("sculpting",        "Sculpting",          "SCULPTMODE_HLT",     "Sculpting tools, brushes, and detailing",                                                          (1.00, 0.55, 0.30, 1.0)),
+    ("rigging",          "Rigging & Armature", "ARMATURE_DATA",      "Character rigging, bone setups, and skins",                                                       (0.75, 0.55, 1.00, 1.0)),
+    ("animation",        "Animation",          "ACTION",             "Animation workflows, keyframing, and motion tools",                                              (0.30, 0.95, 0.65, 1.0)),
+    ("render_lighting",  "Render & Lighting",  "SHADING_RENDERED",   "Lighting setups, render engines, and camera tools",                                               (1.00, 0.85, 0.50, 1.0)),
+    ("materials_shading","Materials & Shading","MATERIAL",           "Shaders, texture mapping, and node tools",                                                        (0.95, 0.50, 0.75, 1.0)),
+    ("uv_texturing",     "UV & Texturing",     "UV",                 "UV unwrapping, layout, and packing",                                                              (0.55, 0.85, 0.95, 1.0)),
+    ("import_export",    "Import & Export",    "IMPORT",             "File formats, I/O pipelines, and asset exchanges",                                                (0.70, 0.70, 0.70, 1.0)),
+    ("pipeline_utils",   "Pipeline & Utilities","PREFERENCES",        "Productivity helpers, UI enhancements, and system tools",                                        (0.65, 0.65, 0.65, 1.0)),
 ]
 
 # Keyword rules for automatic category matching
@@ -21,7 +23,7 @@ CATEGORY_RULES = {
     "Modeling": [
         "mesh", "modeling", "model", "curve", "surface", "boolean", "bool",
         "topology", "retopo", "loop", "poly", "extrude", "bevel", "modifier",
-        "cad", "subdivision", "3d print", "procity", "fluent"
+        "cad", "subdivision", "3d print", "fluent"
     ],
     "Sculpting": [
         "sculpt", "brush", "clay", "multires", "voxel", "remesh", "detail"

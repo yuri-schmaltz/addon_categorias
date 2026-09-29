@@ -98,11 +98,40 @@ def run_tests():
     assert prefs.active_category == "Sculpting", f"Expected 'Sculpting', got '{prefs.active_category}'"
     print("  -> select_category operator works.")
 
-    # Test load_more operator
-    initial_limit = prefs.max_display_count
-    bpy.ops.addon_categories.load_more(step=30)
-    assert prefs.max_display_count == initial_limit + 30
-    print(f"  -> load_more operator works (new limit: {prefs.max_display_count}).")
+    # Test load_more operator (now resets list_index; virtualised list
+    # means there's no fixed cap to bump).
+    initial_index = prefs.list_index
+    prefs.list_index = 5  # pretend we scrolled
+    bpy.ops.addon_categories.load_more()
+    assert prefs.list_index == 0, f"load_more should reset to top, got {prefs.list_index}"
+    print(f"  -> load_more operator works (scrolled from {initial_index} to top).")
+
+    # Test granular reset operators
+    print("  -> Testing granular reset operators...")
+    # Seed a custom category and a tag for the test
+    custom_cat = prefs.categories.add()
+    custom_cat.name = "Temp Test Category"
+    custom_cat.is_builtin = False
+    custom_cat.icon = "BOOKMARKS"
+    custom_cat.description = "Temp"
+    prefs.toggle_addon_tag("io_anim_bvh", "Temp Test Category")
+
+    assert prefs.has_tag("io_anim_bvh", "Temp Test Category")
+    assert any(c.name == "Temp Test Category" for c in prefs.categories)
+
+    # reset_tags should keep the category but drop the assignment
+    bpy.ops.addon_categories.reset_tags('INVOKE_DEFAULT')
+    assert not prefs.has_tag("io_anim_bvh", "Temp Test Category")
+    assert any(c.name == "Temp Test Category" for c in prefs.categories)
+    print("     reset_tags kept categories, cleared assignments.")
+
+    # reset_custom_categories should drop the custom one but keep built-ins
+    builtins_before = [c.name for c in prefs.categories if c.is_builtin]
+    bpy.ops.addon_categories.reset_custom_categories('INVOKE_DEFAULT')
+    assert not any(c.name == "Temp Test Category" for c in prefs.categories)
+    builtins_after = [c.name for c in prefs.categories if c.is_builtin]
+    assert builtins_before == builtins_after, "Built-ins must be preserved"
+    print("     reset_custom_categories removed custom, kept built-ins.")
 
     # 7. Test JSON Export and Import
     print("\n[TEST 7] Testing JSON Export and Import...")

@@ -14,8 +14,6 @@ bl_info = {
     "category": "System",
 }
 
-import sys
-
 # Support module reload in Blender
 if "properties" in locals():
     import importlib
