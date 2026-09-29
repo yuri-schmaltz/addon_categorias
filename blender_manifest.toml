@@ -1,0 +1,20 @@
+schema_version = "1.0.0"
+id = "addon_categories"
+name = "Extension & Add-on Categories"
+version = "1.0.0"
+tagline = "Categorize, organize, and filter Blender add-ons and extensions with custom tags, bulk controls, and JSON export/import."
+maintainer = "Yuri"
+type = "add-on"
+tags = ["User Interface", "System", "Preferences"]
+blender_version_min = "4.2.0"
+license = ["SPDX:GPL-3.0-or-later"]
+
+[permissions]
+files = "Export and import category backup files (JSON)"
+
+[build]
+paths_exclude_pattern = [
+    "__pycache__/",
+    "*.pickle",
+    "test_*.py",
+]
